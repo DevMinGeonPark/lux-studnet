@@ -5,6 +5,7 @@ import '../widgets/custom_bottom_nav.dart';
 import 'pomodoro_screen.dart';
 import 'todo_screen.dart';
 import 'settings_screen.dart';
+import 'dictionary_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -38,6 +39,8 @@ class _MainScreenState extends State<MainScreen> {
             });
           },
         );
+      case 4:
+        return const DictionaryScreen();
       default:
         return _buildPlaceholderScreen();
     }
