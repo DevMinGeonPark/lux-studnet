@@ -6,6 +6,7 @@ import 'pomodoro_screen.dart';
 import 'todo_screen.dart';
 import 'settings_screen.dart';
 import 'dictionary_screen.dart';
+import 'speech_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -68,7 +69,13 @@ class _MainScreenState extends State<MainScreen> {
               padding: const EdgeInsets.fromLTRB(16, 24, 0, 8),
               child: Text(
                 'Daily Schedule',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 18, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
               ),
             ),
             Expanded(
@@ -92,7 +99,11 @@ class _MainScreenState extends State<MainScreen> {
                                 Icon(
                                   Icons.access_time,
                                   size: 24,
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                                 if (!isLast)
                                   Container(
@@ -103,7 +114,11 @@ class _MainScreenState extends State<MainScreen> {
                                     ),
                                     child: CustomPaint(
                                       painter: DottedLinePainter(
-                                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF444444) : Colors.grey[400]!,
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF444444)
+                                            : Colors.grey[400]!,
                                       ),
                                     ),
                                   ),
@@ -114,11 +129,16 @@ class _MainScreenState extends State<MainScreen> {
                               padding: const EdgeInsets.only(top: 2.0),
                               child: Text(
                                 '${item['start']} - ${item['end']}',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                    ),
                               ),
                             ),
                           ],
@@ -133,13 +153,23 @@ class _MainScreenState extends State<MainScreen> {
           right: 24.0,
           child: FloatingActionButton(
             onPressed: () {
-              // TODO: 채팅 기능 연결
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('채팅 기능 준비 중!')));
+              // 음성 인식 모달 표시
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return const SpeechModal();
+                },
+              );
             },
-            backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2C2C2E) : const Color(0xFFDBE8F2),
-            child: Icon(Icons.chat, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFDBE8F2),
+            child: Icon(
+              Icons.mic,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+            ),
           ),
         ),
       ],
@@ -151,11 +181,7 @@ class _MainScreenState extends State<MainScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.construction,
-            size: 64,
-            color: Colors.grey,
-          ),
+          Icon(Icons.construction, size: 64, color: Colors.grey),
           SizedBox(height: 16),
           Text(
             'Coming Soon!',
@@ -168,10 +194,7 @@ class _MainScreenState extends State<MainScreen> {
           SizedBox(height: 8),
           Text(
             'This feature is under development',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -193,26 +216,30 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: _selectedIndex == 0 ? AppBar(
-        centerTitle: true,
-        title: const Text(
-          'Study Planner',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ) : null,
+      appBar: _selectedIndex == 0
+          ? AppBar(
+              centerTitle: true,
+              title: const Text(
+                'Study Planner',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+              elevation: 0,
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+            )
+          : null,
       body: _buildBody(),
       bottomNavigationBar: CustomBottomNav(
         selectedIndex: _selectedIndex,
