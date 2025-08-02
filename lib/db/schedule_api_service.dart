@@ -4,18 +4,26 @@ import 'app_http_client.dart';
 
 // 스케줄 데이터 모델
 class ScheduleData {
+  final String? id;
+  final String? userId;
   final String title;
   final String date;
   final String time;
   final String category;
   final String description;
+  final String? createdAt;
+  final String? updatedAt;
 
   ScheduleData({
+    this.id,
+    this.userId,
     required this.title,
     required this.date,
     required this.time,
     required this.category,
     required this.description,
+    this.createdAt,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -30,19 +38,27 @@ class ScheduleData {
 
   factory ScheduleData.fromJson(Map<String, dynamic> json) {
     return ScheduleData(
+      id: json['id'],
+      userId: json['user_id'],
       title: json['title'] ?? '',
       date: json['date'] ?? '',
       time: json['time'] ?? '',
       category: json['category'] ?? '',
       description: json['description'] ?? '',
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
     );
   }
 }
 
 class ScheduleApiService {
-  // 기존 Supabase Function URL 사용
-  final String baseUrl = dotenv.env['SUPABASE_FUNCTION_URL'] ?? '';
-  final String token = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  // Supabase Function URL - .env 파일이 없는 경우 기본값 사용
+  final String baseUrl =
+      dotenv.env['SUPABASE_FUNCTION_URL'] ??
+      'https://fratbzhsgiiyggfrdqpk.supabase.co/functions/v1';
+  final String token =
+      dotenv.env['SUPABASE_ANON_KEY'] ??
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyYXRiemhzZ2lpeWdnZnJkcXBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyMTQ1MTgsImV4cCI6MjA2Nzc5MDUxOH0.FsRC0wTUVrA7JgSk1S25NnCshVFoGRaCgJQNKwE97RI';
   final AppHttpClient _http = AppHttpClient();
 
   // 스케줄 API 엔드포인트
@@ -52,10 +68,10 @@ class ScheduleApiService {
   Future<Map<String, dynamic>> addSchedule(ScheduleData scheduleData) async {
     try {
       final url = Uri.parse(scheduleUrl);
-      
+
       print('📅 스케줄 추가 요청: $url');
       print('📄 데이터: ${json.encode(scheduleData.toJson())}');
-      
+
       final response = await _http.post(
         url,
         headers: {
@@ -88,12 +104,45 @@ class ScheduleApiService {
     }
   }
 
-  /// 스케줄 목록 조회 (향후 확장용)
+  /// 스케줄 목록 조회
   Future<List<ScheduleData>> fetchSchedules({String? date}) async {
     try {
-      // TODO: 스케줄 조회 API가 준비되면 구현
-      print('📅 스케줄 조회 기능은 아직 구현되지 않았습니다.');
-      return [];
+      // URL 구성 (날짜 필터링 지원)
+      String url = scheduleUrl;
+      if (date != null) {
+        url += '?date=$date';
+      }
+
+      print('📅 스케줄 조회 요청: $url');
+
+      final response = await _http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('📡 응답 상태: ${response.statusCode}');
+      print('📡 응답 본문: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        // API 응답 구조에 따른 데이터 추출
+        if (responseData['success'] == true &&
+            responseData['schedules'] != null) {
+          final List<dynamic> schedulesJson = responseData['schedules'];
+          return schedulesJson
+              .map((json) => ScheduleData.fromJson(json))
+              .toList();
+        } else {
+          print('📅 스케줄 목록이 비어있습니다.');
+          return [];
+        }
+      } else {
+        throw Exception('서버 오류: ${response.statusCode}');
+      }
     } catch (e) {
       print('❌ 스케줄 조회 오류: $e');
       throw Exception('스케줄 조회에 실패했습니다: ${e.toString()}');
@@ -101,14 +150,14 @@ class ScheduleApiService {
   }
 
   /// 스케줄 수정 (향후 확장용)
-  Future<Map<String, dynamic>> updateSchedule(String id, ScheduleData scheduleData) async {
+  Future<Map<String, dynamic>> updateSchedule(
+    String id,
+    ScheduleData scheduleData,
+  ) async {
     try {
       // TODO: 스케줄 수정 API가 준비되면 구현
       print('📅 스케줄 수정 기능은 아직 구현되지 않았습니다.');
-      return {
-        'success': false,
-        'message': '스케줄 수정 기능은 아직 구현되지 않았습니다.',
-      };
+      return {'success': false, 'message': '스케줄 수정 기능은 아직 구현되지 않았습니다.'};
     } catch (e) {
       print('❌ 스케줄 수정 오류: $e');
       return {
@@ -124,10 +173,7 @@ class ScheduleApiService {
     try {
       // TODO: 스케줄 삭제 API가 준비되면 구현
       print('📅 스케줄 삭제 기능은 아직 구현되지 않았습니다.');
-      return {
-        'success': false,
-        'message': '스케줄 삭제 기능은 아직 구현되지 않았습니다.',
-      };
+      return {'success': false, 'message': '스케줄 삭제 기능은 아직 구현되지 않았습니다.'};
     } catch (e) {
       print('❌ 스케줄 삭제 오류: $e');
       return {

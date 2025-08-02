@@ -95,32 +95,45 @@ class _SpeechModalState extends State<SpeechModal> {
   ScheduleData? _analyzeScheduleFromText(String text) {
     if (text.isEmpty) return null;
 
-    // 스케줄 관련 키워드가 있는지 확인
-    final scheduleKeywords = ['일정', '약속', '미팅', '과외', '수업', '회의', '만남'];
+    // 텍스트를 소문자로 변환하여 대소문자 구분 없이 검색
+    final lowerText = text.toLowerCase();
+
+    // 스케줄 관련 키워드가 있는지 확인 (한국어 + 영어)
+    final scheduleKeywords = [
+      // 한국어
+      '일정', '약속', '미팅', '과외', '수업', '회의', '만남',
+      // 영어
+      'meeting', 'appointment', 'class', 'lesson', 'tutoring', 'session',
+      'conference', 'schedule', 'event', 'gathering', 'date', 'interview',
+    ];
     bool hasScheduleKeyword = scheduleKeywords.any(
-      (keyword) => text.contains(keyword),
+      (keyword) => lowerText.contains(keyword.toLowerCase()),
     );
 
-    // 시간 관련 키워드가 있는지 확인
-    final timeKeywords = ['시', '분', '오전', '오후', '아침', '점심', '저녁', '밤'];
-    bool hasTimeKeyword = timeKeywords.any((keyword) => text.contains(keyword));
-
-    // 날짜 관련 키워드가 있는지 확인
-    final dateKeywords = [
-      '오늘',
-      '내일',
-      '모레',
-      '이번',
-      '다음',
-      '월',
-      '화',
-      '수',
-      '목',
-      '금',
-      '토',
-      '일',
+    // 시간 관련 키워드가 있는지 확인 (한국어 + 영어)
+    final timeKeywords = [
+      // 한국어
+      '시', '분', '오전', '오후', '아침', '점심', '저녁', '밤',
+      // 영어
+      'o\'clock', 'hour', 'minute', 'am', 'pm', 'a.m.', 'p.m.',
+      'morning', 'afternoon', 'evening', 'night', 'noon', 'midnight',
     ];
-    bool hasDateKeyword = dateKeywords.any((keyword) => text.contains(keyword));
+    bool hasTimeKeyword = timeKeywords.any(
+      (keyword) => lowerText.contains(keyword.toLowerCase()),
+    );
+
+    // 날짜 관련 키워드가 있는지 확인 (한국어 + 영어)
+    final dateKeywords = [
+      // 한국어
+      '오늘', '내일', '모레', '이번', '다음', '월', '화', '수', '목', '금', '토', '일',
+      // 영어
+      'today', 'tomorrow', 'yesterday', 'this', 'next', 'monday', 'tuesday',
+      'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+      'week', 'month', 'day',
+    ];
+    bool hasDateKeyword = dateKeywords.any(
+      (keyword) => lowerText.contains(keyword.toLowerCase()),
+    );
 
     if (!hasScheduleKeyword && !hasTimeKeyword && !hasDateKeyword) {
       return null; // 스케줄과 관련없는 텍스트
@@ -147,11 +160,14 @@ class _SpeechModalState extends State<SpeechModal> {
     );
   }
 
-  /// 날짜 정보 추출
+  /// 날짜 정보 추출 (한국어 + 영어 지원)
   String _extractDate(String text) {
-    if (text.contains('오늘')) {
+    final lowerText = text.toLowerCase();
+
+    // 한국어 날짜 패턴
+    if (text.contains('오늘') || lowerText.contains('today')) {
       return DateTime.now().toString().split(' ')[0]; // YYYY-MM-DD 형식
-    } else if (text.contains('내일')) {
+    } else if (text.contains('내일') || lowerText.contains('tomorrow')) {
       return DateTime.now()
           .add(const Duration(days: 1))
           .toString()
@@ -163,19 +179,53 @@ class _SpeechModalState extends State<SpeechModal> {
           .split(' ')[0];
     }
 
+    // 영어 요일 패턴 처리
+    final today = DateTime.now();
+
+    if (lowerText.contains('monday')) {
+      return _getNextWeekday(today, 1).toString().split(' ')[0];
+    } else if (lowerText.contains('tuesday')) {
+      return _getNextWeekday(today, 2).toString().split(' ')[0];
+    } else if (lowerText.contains('wednesday')) {
+      return _getNextWeekday(today, 3).toString().split(' ')[0];
+    } else if (lowerText.contains('thursday')) {
+      return _getNextWeekday(today, 4).toString().split(' ')[0];
+    } else if (lowerText.contains('friday')) {
+      return _getNextWeekday(today, 5).toString().split(' ')[0];
+    } else if (lowerText.contains('saturday')) {
+      return _getNextWeekday(today, 6).toString().split(' ')[0];
+    } else if (lowerText.contains('sunday')) {
+      return _getNextWeekday(today, 7).toString().split(' ')[0];
+    }
+
     // 기본값은 오늘
     return DateTime.now().toString().split(' ')[0];
   }
 
-  /// 시간 정보 추출
-  String _extractTime(String text) {
-    // 시간 패턴 매칭 (예: "4시", "오후 2시", "14시 30분")
-    RegExp timePattern = RegExp(r'(\d{1,2})시(\s*(\d{1,2})분)?');
-    Match? match = timePattern.firstMatch(text);
+  /// 다음 특정 요일 날짜 계산
+  DateTime _getNextWeekday(DateTime from, int targetWeekday) {
+    final currentWeekday = from.weekday;
+    int daysToAdd = targetWeekday - currentWeekday;
 
-    if (match != null) {
-      int hour = int.parse(match.group(1) ?? '0');
-      int minute = int.parse(match.group(3) ?? '0');
+    // 만약 오늘이 목표 요일이거나 이미 지났다면 다음 주로
+    if (daysToAdd <= 0) {
+      daysToAdd += 7;
+    }
+
+    return from.add(Duration(days: daysToAdd));
+  }
+
+  /// 시간 정보 추출 (한국어 + 영어 지원)
+  String _extractTime(String text) {
+    final lowerText = text.toLowerCase();
+
+    // 한국어 시간 패턴 매칭 (예: "4시", "오후 2시", "14시 30분")
+    RegExp koreanTimePattern = RegExp(r'(\d{1,2})시(\s*(\d{1,2})분)?');
+    Match? koreanMatch = koreanTimePattern.firstMatch(text);
+
+    if (koreanMatch != null) {
+      int hour = int.parse(koreanMatch.group(1) ?? '0');
+      int minute = int.parse(koreanMatch.group(3) ?? '0');
 
       // 오후인지 확인
       if (text.contains('오후') && hour < 12) {
@@ -185,25 +235,230 @@ class _SpeechModalState extends State<SpeechModal> {
       return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
     }
 
+    // 영어 시간 패턴 매칭
+    // 패턴 1: "2pm", "3am", "12 pm"
+    RegExp englishPattern1 = RegExp(
+      r'(\d{1,2})\s*(am|pm|a\.m\.|p\.m\.)',
+      caseSensitive: false,
+    );
+    Match? englishMatch1 = englishPattern1.firstMatch(lowerText);
+
+    if (englishMatch1 != null) {
+      int hour = int.parse(englishMatch1.group(1) ?? '0');
+      String ampm = englishMatch1.group(2)?.toLowerCase() ?? '';
+
+      if ((ampm.contains('pm') || ampm.contains('p.m.')) && hour < 12) {
+        hour += 12;
+      } else if ((ampm.contains('am') || ampm.contains('a.m.')) && hour == 12) {
+        hour = 0; // 12am = 00:00
+      }
+
+      return '${hour.toString().padLeft(2, '0')}:00';
+    }
+
+    // 패턴 2: "3:30", "14:45", "2:15 pm"
+    RegExp englishPattern2 = RegExp(
+      r'(\d{1,2}):(\d{2})\s*(am|pm|a\.m\.|p\.m\.)?',
+      caseSensitive: false,
+    );
+    Match? englishMatch2 = englishPattern2.firstMatch(lowerText);
+
+    if (englishMatch2 != null) {
+      int hour = int.parse(englishMatch2.group(1) ?? '0');
+      int minute = int.parse(englishMatch2.group(2) ?? '0');
+      String? ampm = englishMatch2.group(3)?.toLowerCase();
+
+      if (ampm != null) {
+        if ((ampm.contains('pm') || ampm.contains('p.m.')) && hour < 12) {
+          hour += 12;
+        } else if ((ampm.contains('am') || ampm.contains('a.m.')) &&
+            hour == 12) {
+          hour = 0;
+        }
+      }
+
+      return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    }
+
+    // 패턴 3: "2 o'clock", "three o'clock" - 간단한 처리
+    if (lowerText.contains('oclock')) {
+      // 숫자 + o'clock 패턴 찾기
+      final words = lowerText.split(' ');
+      for (int i = 0; i < words.length - 1; i++) {
+        if (words[i + 1].contains('oclock')) {
+          final hourStr = words[i];
+          final hour = int.tryParse(hourStr);
+          if (hour != null && hour >= 1 && hour <= 12) {
+            int finalHour = hour;
+            // 오후인지 확인
+            if (lowerText.contains('afternoon') ||
+                lowerText.contains('evening')) {
+              if (finalHour < 12) finalHour += 12;
+            }
+            return '${finalHour.toString().padLeft(2, '0')}:00';
+          }
+        }
+      }
+    }
+
+    // 특별한 시간 표현들
+    if (lowerText.contains('noon') || lowerText.contains('점심')) {
+      return '12:00';
+    } else if (lowerText.contains('midnight') || lowerText.contains('자정')) {
+      return '00:00';
+    } else if (lowerText.contains('morning') || lowerText.contains('아침')) {
+      return '09:00';
+    } else if (lowerText.contains('afternoon') || lowerText.contains('오후')) {
+      return '14:00';
+    } else if (lowerText.contains('evening') || lowerText.contains('저녁')) {
+      return '18:00';
+    } else if (lowerText.contains('night') || lowerText.contains('밤')) {
+      return '20:00';
+    }
+
     return '09:00'; // 기본값
   }
 
-  /// 제목 추출
+  /// 제목 추출 (한국어 + 영어 지원)
   String _extractTitle(String text) {
-    if (text.contains('과외')) return '과외';
-    if (text.contains('수업')) return '수업';
-    if (text.contains('미팅') || text.contains('회의')) return '회의';
-    if (text.contains('약속')) return '약속';
-    if (text.contains('만남')) return '만남';
+    final lowerText = text.toLowerCase();
 
-    return '일정'; // 기본값
+    // 교육 관련
+    if (text.contains('과외') || lowerText.contains('tutoring')) return '과외';
+    if (text.contains('수업') ||
+        lowerText.contains('class') ||
+        lowerText.contains('lesson'))
+      return '수업';
+    if (lowerText.contains('study') || lowerText.contains('homework'))
+      return '공부';
+
+    // 업무 관련
+    if (text.contains('미팅') ||
+        text.contains('회의') ||
+        lowerText.contains('meeting'))
+      return '회의';
+    if (lowerText.contains('conference') || lowerText.contains('presentation'))
+      return '컨퍼런스';
+    if (lowerText.contains('interview')) return '인터뷰';
+    if (lowerText.contains('work') || lowerText.contains('project'))
+      return '업무';
+
+    // 개인 관련
+    if (text.contains('약속') || lowerText.contains('appointment')) return '약속';
+    if (text.contains('만남') ||
+        lowerText.contains('date') ||
+        lowerText.contains('gathering'))
+      return '만남';
+    if (lowerText.contains('dinner') ||
+        lowerText.contains('lunch') ||
+        lowerText.contains('meal'))
+      return '식사';
+    if (lowerText.contains('exercise') ||
+        lowerText.contains('gym') ||
+        lowerText.contains('workout'))
+      return '운동';
+
+    // 의료 관련
+    if (lowerText.contains('doctor') ||
+        lowerText.contains('hospital') ||
+        lowerText.contains('clinic'))
+      return '병원';
+    if (lowerText.contains('dentist')) return '치과';
+
+    // 쇼핑/외출
+    if (lowerText.contains('shopping') || lowerText.contains('buy'))
+      return '쇼핑';
+    if (lowerText.contains('movie') || lowerText.contains('cinema'))
+      return '영화';
+
+    return lowerText.contains('meeting') ||
+            lowerText.contains('appointment') ||
+            lowerText.contains('class') ||
+            lowerText.contains('session')
+        ? 'Schedule'
+        : '일정'; // 기본값
   }
 
-  /// 카테고리 추출
+  /// 카테고리 추출 (한국어 + 영어 지원)
   String _extractCategory(String text) {
-    if (text.contains('과외') || text.contains('수업')) return '교육';
-    if (text.contains('미팅') || text.contains('회의')) return '업무';
-    if (text.contains('약속') || text.contains('만남')) return '개인';
+    final lowerText = text.toLowerCase();
+
+    // 교육 카테고리
+    if (text.contains('과외') ||
+        text.contains('수업') ||
+        lowerText.contains('tutoring') ||
+        lowerText.contains('class') ||
+        lowerText.contains('lesson') ||
+        lowerText.contains('study') ||
+        lowerText.contains('homework') ||
+        lowerText.contains('exam')) {
+      return '교육';
+    }
+
+    // 업무 카테고리
+    if (text.contains('미팅') ||
+        text.contains('회의') ||
+        lowerText.contains('meeting') ||
+        lowerText.contains('conference') ||
+        lowerText.contains('presentation') ||
+        lowerText.contains('interview') ||
+        lowerText.contains('work') ||
+        lowerText.contains('project') ||
+        lowerText.contains('office')) {
+      return '업무';
+    }
+
+    // 의료 카테고리
+    if (lowerText.contains('doctor') ||
+        lowerText.contains('hospital') ||
+        lowerText.contains('clinic') ||
+        lowerText.contains('dentist') ||
+        lowerText.contains('medical') ||
+        lowerText.contains('checkup')) {
+      return '의료';
+    }
+
+    // 운동/건강 카테고리
+    if (lowerText.contains('exercise') ||
+        lowerText.contains('gym') ||
+        lowerText.contains('workout') ||
+        lowerText.contains('fitness') ||
+        lowerText.contains('yoga') ||
+        lowerText.contains('sport')) {
+      return '운동';
+    }
+
+    // 쇼핑 카테고리
+    if (lowerText.contains('shopping') ||
+        lowerText.contains('buy') ||
+        lowerText.contains('store') ||
+        lowerText.contains('mall')) {
+      return '쇼핑';
+    }
+
+    // 엔터테인먼트 카테고리
+    if (lowerText.contains('movie') ||
+        lowerText.contains('cinema') ||
+        lowerText.contains('theater') ||
+        lowerText.contains('concert') ||
+        lowerText.contains('show') ||
+        lowerText.contains('entertainment')) {
+      return '오락';
+    }
+
+    // 개인 카테고리 (기본)
+    if (text.contains('약속') ||
+        text.contains('만남') ||
+        lowerText.contains('appointment') ||
+        lowerText.contains('date') ||
+        lowerText.contains('gathering') ||
+        lowerText.contains('dinner') ||
+        lowerText.contains('lunch') ||
+        lowerText.contains('meal') ||
+        lowerText.contains('friend') ||
+        lowerText.contains('family')) {
+      return '개인';
+    }
 
     return '기타'; // 기본값
   }
@@ -605,7 +860,9 @@ class _SpeechModalState extends State<SpeechModal> {
                   // 텍스트 초기화 버튼
                   TextButton.icon(
                     onPressed:
-                        _lastWords.isNotEmpty || _detectedSchedule != null || _apiResult != null
+                        _lastWords.isNotEmpty ||
+                            _detectedSchedule != null ||
+                            _apiResult != null
                         ? () {
                             setState(() {
                               _lastWords = '';
