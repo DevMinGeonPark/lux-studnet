@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'pomodoro_timer_model.dart';
 import 'screens/main_screen.dart';
+import 'language_provider.dart';
 
 enum AppThemeMode { light, dark }
 
@@ -14,7 +15,8 @@ class ThemeProvider extends ChangeNotifier {
 
   AppThemeMode get mode => _mode;
   bool get isDark => _mode == AppThemeMode.dark;
-  ThemeMode get themeMode => _mode == AppThemeMode.dark ? ThemeMode.dark : ThemeMode.light;
+  ThemeMode get themeMode =>
+      _mode == AppThemeMode.dark ? ThemeMode.dark : ThemeMode.light;
 
   ThemeProvider() {
     _loadTheme();
@@ -42,7 +44,10 @@ class ThemeProvider extends ChangeNotifier {
     _mode = mode;
     if (!kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('theme_mode', mode == AppThemeMode.dark ? 'dark' : 'light');
+      await prefs.setString(
+        'theme_mode',
+        mode == AppThemeMode.dark ? 'dark' : 'light',
+      );
     }
     if (hasListeners) notifyListeners();
   }
@@ -55,6 +60,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => PomodoroTimerModel()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
       child: const MyApp(),
     ),
@@ -75,10 +81,15 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         );
         final darkTheme = ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.dark),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.dark,
+          ),
           useMaterial3: true,
           brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF18191A), // Apple-style dark charcoal
+          scaffoldBackgroundColor: const Color(
+            0xFF18191A,
+          ), // Apple-style dark charcoal
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFF18191A),
             foregroundColor: Colors.white,
