@@ -179,6 +179,34 @@ class _SpeechModalState extends State<SpeechModal> {
           .split(' ')[0];
     }
 
+    // "08일", "6일" 같은 형태의 날짜 패턴 처리
+    RegExp dayPattern = RegExp(r'(\d{1,2})일');
+    Match? dayMatch = dayPattern.firstMatch(text);
+
+    if (dayMatch != null) {
+      int day = int.parse(dayMatch.group(1) ?? '0');
+      final today = DateTime.now();
+
+      if (day >= 1 && day <= 31) {
+        try {
+          // 이번 달의 해당 날짜로 설정
+          final targetDate = DateTime(today.year, today.month, day);
+
+          // 만약 해당 날짜가 이미 지났다면 다음 달로
+          if (targetDate.isBefore(today)) {
+            final nextMonthDate = DateTime(today.year, today.month + 1, day);
+            return nextMonthDate.toString().split(' ')[0];
+          }
+
+          return targetDate.toString().split(' ')[0];
+        } catch (e) {
+          // 날짜가 유효하지 않은 경우 (예: 2월 30일) 다음 달로
+          final nextMonthDate = DateTime(today.year, today.month + 1, day);
+          return nextMonthDate.toString().split(' ')[0];
+        }
+      }
+    }
+
     // 영어 요일 패턴 처리
     final today = DateTime.now();
 

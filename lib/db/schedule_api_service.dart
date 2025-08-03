@@ -63,6 +63,8 @@ class ScheduleApiService {
 
   // 스케줄 API 엔드포인트
   String get scheduleUrl => '$baseUrl/test-schedule';
+  String get editScheduleUrl => '$baseUrl/edit-schedule';
+  String get deleteScheduleUrl => '$baseUrl/delete-schedule';
 
   /// 스케줄 추가
   Future<Map<String, dynamic>> addSchedule(ScheduleData scheduleData) async {
@@ -149,15 +151,46 @@ class ScheduleApiService {
     }
   }
 
-  /// 스케줄 수정 (향후 확장용)
+  /// 스케줄 수정 (새로운 전용 API 사용)
   Future<Map<String, dynamic>> updateSchedule(
     String id,
     ScheduleData scheduleData,
   ) async {
     try {
-      // TODO: 스케줄 수정 API가 준비되면 구현
-      print('📅 스케줄 수정 기능은 아직 구현되지 않았습니다.');
-      return {'success': false, 'message': '스케줄 수정 기능은 아직 구현되지 않았습니다.'};
+      final url = Uri.parse(editScheduleUrl);
+
+      // ID와 함께 수정할 데이터 구성
+      final requestData = {'id': id, ...scheduleData.toJson()};
+
+      print('📅 스케줄 수정 요청: $url');
+      print('📄 데이터: ${json.encode(requestData)}');
+
+      final response = await _http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestData),
+      );
+
+      print('📡 응답 상태: ${response.statusCode}');
+      print('📡 응답 본문: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          return {
+            'success': true,
+            'message': responseData['message'] ?? '스케줄이 성공적으로 수정되었습니다.',
+            'data': responseData['schedule'],
+          };
+        } else {
+          throw Exception(responseData['error'] ?? '수정에 실패했습니다.');
+        }
+      } else {
+        throw Exception('서버 오류: ${response.statusCode}');
+      }
     } catch (e) {
       print('❌ 스케줄 수정 오류: $e');
       return {
@@ -168,12 +201,40 @@ class ScheduleApiService {
     }
   }
 
-  /// 스케줄 삭제 (향후 확장용)
+  /// 스케줄 삭제 (새로운 전용 API 사용)
   Future<Map<String, dynamic>> deleteSchedule(String id) async {
     try {
-      // TODO: 스케줄 삭제 API가 준비되면 구현
-      print('📅 스케줄 삭제 기능은 아직 구현되지 않았습니다.');
-      return {'success': false, 'message': '스케줄 삭제 기능은 아직 구현되지 않았습니다.'};
+      final url = Uri.parse(deleteScheduleUrl);
+
+      print('📅 스케줄 삭제 요청: $url');
+      print('📄 삭제할 ID: $id');
+
+      final response = await _http.delete(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'id': id}),
+      );
+
+      print('📡 응답 상태: ${response.statusCode}');
+      print('📡 응답 본문: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          return {
+            'success': true,
+            'message': responseData['message'] ?? '스케줄이 성공적으로 삭제되었습니다.',
+            'data': responseData['deletedSchedule'],
+          };
+        } else {
+          throw Exception(responseData['error'] ?? '삭제에 실패했습니다.');
+        }
+      } else {
+        throw Exception('서버 오류: ${response.statusCode}');
+      }
     } catch (e) {
       print('❌ 스케줄 삭제 오류: $e');
       return {

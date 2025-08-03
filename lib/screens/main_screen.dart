@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../db/schedule_api_service.dart';
 import 'pomodoro_screen.dart';
@@ -6,6 +7,7 @@ import 'todo_screen.dart';
 import 'settings_screen.dart';
 import 'dictionary_screen.dart';
 import 'speech_screen.dart';
+import 'chat_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -169,104 +171,91 @@ class _MainScreenState extends State<MainScreen> {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(12.0),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF2C2C2E)
-                                        : Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
+                                child: GestureDetector(
+                                  onTap: () => _showScheduleOptionsModal(item),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12.0),
+                                    decoration: BoxDecoration(
                                       color:
                                           Theme.of(context).brightness ==
                                               Brightness.dark
-                                          ? const Color(0xFF444444)
-                                          : Colors.grey[300]!,
+                                          ? const Color(0xFF2C2C2E)
+                                          : Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF444444)
+                                            : Colors.grey[300]!,
+                                      ),
                                     ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              item.title,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleSmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        Theme.of(
-                                                              context,
-                                                            ).brightness ==
-                                                            Brightness.dark
-                                                        ? Colors.white
-                                                        : Colors.black87,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item.title,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleSmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.white
+                                                          : Colors.black87,
+                                                    ),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2,
                                                   ),
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.deepPurple
-                                                        .withOpacity(0.3)
-                                                  : Colors.deepPurple
-                                                        .withOpacity(0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              item.category,
-                                              style: TextStyle(
-                                                fontSize: 12,
+                                              decoration: BoxDecoration(
                                                 color:
                                                     Theme.of(
                                                           context,
                                                         ).brightness ==
                                                         Brightness.dark
-                                                    ? Colors.deepPurple[200]
-                                                    : Colors.deepPurple[700],
-                                                fontWeight: FontWeight.w500,
+                                                    ? Colors.deepPurple
+                                                          .withOpacity(0.3)
+                                                    : Colors.deepPurple
+                                                          .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                item.category,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color:
+                                                      Theme.of(
+                                                            context,
+                                                          ).brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.deepPurple[200]
+                                                      : Colors.deepPurple[700],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${item.time} • ${item.date}',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color:
-                                                  Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.grey[400]
-                                                  : Colors.grey[600],
-                                            ),
-                                      ),
-                                      if (item.description.isNotEmpty) ...[
+                                          ],
+                                        ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          item.description,
+                                          '${item.time} • ${item.date}',
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall
@@ -276,12 +265,30 @@ class _MainScreenState extends State<MainScreen> {
                                                           context,
                                                         ).brightness ==
                                                         Brightness.dark
-                                                    ? Colors.grey[300]
-                                                    : Colors.grey[700],
+                                                    ? Colors.grey[400]
+                                                    : Colors.grey[600],
                                               ),
                                         ),
+                                        if (item.description.isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            item.description,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color:
+                                                      Theme.of(
+                                                            context,
+                                                          ).brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey[300]
+                                                      : Colors.grey[700],
+                                                ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -302,7 +309,6 @@ class _MainScreenState extends State<MainScreen> {
               // 새로고침 버튼
               FloatingActionButton(
                 heroTag: "refresh",
-                mini: true,
                 onPressed: () {
                   _loadSchedule();
                 },
@@ -311,6 +317,34 @@ class _MainScreenState extends State<MainScreen> {
                     : const Color(0xFFDBE8F2),
                 child: Icon(
                   Icons.refresh,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 채팅 버튼
+              FloatingActionButton(
+                heroTag: "chat",
+                onPressed: () async {
+                  // 채팅 모달 표시
+                  final result = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return const ChatModal();
+                    },
+                  );
+
+                  // 스케줄이 추가되었다면 새로고침
+                  if (result == true) {
+                    _loadSchedule();
+                  }
+                },
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2C2C2E)
+                    : const Color(0xFFDBE8F2),
+                child: Icon(
+                  Icons.chat_bubble_outline,
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
                       : Colors.black,
@@ -414,6 +448,454 @@ class _MainScreenState extends State<MainScreen> {
           ),
         );
       }
+    }
+  }
+
+  // 스케줄 옵션 모달 표시
+  void _showScheduleOptionsModal(ScheduleData schedule) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1C1C1E)
+                : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 핸들
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // 스케줄 정보
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        schedule.title,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${schedule.time} • ${schedule.date}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                        ),
+                      ),
+                      if (schedule.description.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          schedule.description,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey[300]
+                                    : Colors.grey[700],
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const Divider(),
+
+                // 옵션 버튼들
+                ListTile(
+                  leading: Icon(
+                    Icons.edit,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.blue[300]
+                        : Colors.blue[700],
+                  ),
+                  title: const Text('편집하기'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showEditScheduleModal(schedule);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.red[300]
+                        : Colors.red[700],
+                  ),
+                  title: const Text('삭제하기'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showDeleteConfirmDialog(schedule);
+                  },
+                ),
+
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 스케줄 편집 모달
+  void _showEditScheduleModal(ScheduleData schedule) {
+    final titleController = TextEditingController(text: schedule.title);
+    final descriptionController = TextEditingController(
+      text: schedule.description,
+    );
+    final categoryController = TextEditingController(text: schedule.category);
+
+    // 현재 시간을 DateTime으로 파싱
+    DateTime selectedTime = _parseTimeString(schedule.time);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('스케줄 편집'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: '제목',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Cupertino Time Picker 버튼
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          '시간',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        subtitle: Text(
+                          _formatTime(selectedTime),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.access_time),
+                        onTap: () => _showCupertinoTimePicker(
+                          context,
+                          selectedTime,
+                          (DateTime time) {
+                            setState(() {
+                              selectedTime = time;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: categoryController,
+                      decoration: const InputDecoration(
+                        labelText: '카테고리',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: '설명',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('취소'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final updatedSchedule = ScheduleData(
+                      id: schedule.id,
+                      userId: schedule.userId,
+                      title: titleController.text.trim(),
+                      date: schedule.date,
+                      time: _formatTime(selectedTime),
+                      category: categoryController.text.trim(),
+                      description: descriptionController.text.trim(),
+                      createdAt: schedule.createdAt,
+                      updatedAt: schedule.updatedAt,
+                    );
+
+                    Navigator.pop(context);
+                    _editSchedule(updatedSchedule);
+                  },
+                  child: const Text('저장'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 삭제 확인 다이얼로그
+  void _showDeleteConfirmDialog(ScheduleData schedule) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('스케줄 삭제'),
+          content: Text(
+            '\'${schedule.title}\' 스케줄을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _deleteSchedule(schedule);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('삭제'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 스케줄 편집
+  Future<void> _editSchedule(ScheduleData schedule) async {
+    if (schedule.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('편집할 수 없는 스케줄입니다.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final result = await _scheduleService.updateSchedule(
+        schedule.id!,
+        schedule,
+      );
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? '스케줄이 수정되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadSchedule(); // 목록 새로고침
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? '스케줄 수정에 실패했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('스케줄 수정 중 오류가 발생했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 시간 문자열을 DateTime으로 파싱 (예: "14:30" -> DateTime)
+  DateTime _parseTimeString(String timeString) {
+    try {
+      final parts = timeString.split(':');
+      if (parts.length == 2) {
+        final hour = int.parse(parts[0]);
+        final minute = int.parse(parts[1]);
+        final now = DateTime.now();
+        return DateTime(now.year, now.month, now.day, hour, minute);
+      }
+    } catch (e) {
+      print('시간 파싱 오류: $e');
+    }
+
+    // 파싱 실패 시 현재 시간 반환
+    return DateTime.now();
+  }
+
+  // DateTime을 HH:MM 형식 문자열로 변환
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  // Cupertino Time Picker 모달 표시
+  void _showCupertinoTimePicker(
+    BuildContext context,
+    DateTime initialTime,
+    Function(DateTime) onTimeChanged,
+  ) {
+    DateTime tempTime = initialTime;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          height: 300,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1C1C1E)
+                : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // 헤더
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.grey.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('취소'),
+                    ),
+                    const Text(
+                      '시간 선택',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        onTimeChanged(tempTime);
+                        Navigator.pop(context);
+                      },
+                      child: const Text('확인'),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Time Picker
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: initialTime,
+                  use24hFormat: true,
+                  onDateTimeChanged: (DateTime dateTime) {
+                    tempTime = dateTime;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 스케줄 삭제
+  Future<void> _deleteSchedule(ScheduleData schedule) async {
+    if (schedule.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('삭제할 수 없는 스케줄입니다.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final result = await _scheduleService.deleteSchedule(schedule.id!);
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? '스케줄이 삭제되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadSchedule(); // 목록 새로고침
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? '스케줄 삭제에 실패했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('스케줄 삭제 중 오류가 발생했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
