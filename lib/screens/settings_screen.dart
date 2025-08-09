@@ -250,7 +250,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 : Colors.black),
         elevation: 0,
       ),
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Theme.of(context).brightness == Brightness.light 
+          ? Colors.white 
+          : Theme.of(context).scaffoldBackgroundColor,
       body: ListView(
         children: [
           Padding(
