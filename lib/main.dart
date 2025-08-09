@@ -6,12 +6,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'pomodoro_timer_model.dart';
 import 'screens/main_screen.dart';
 import 'language_provider.dart';
+import 'services/notification_service.dart';
 
 enum AppThemeMode { light, dark }
 
 class ThemeProvider extends ChangeNotifier {
   AppThemeMode _mode = AppThemeMode.light;
-  bool _initialized = false;
 
   AppThemeMode get mode => _mode;
   bool get isDark => _mode == AppThemeMode.dark;
@@ -25,7 +25,6 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _loadTheme() async {
     if (kIsWeb) {
       // Use in-memory only for web (no persistence)
-      _initialized = true;
       notifyListeners();
       return;
     }
@@ -36,7 +35,6 @@ class ThemeProvider extends ChangeNotifier {
     } else {
       _mode = AppThemeMode.light;
     }
-    _initialized = true;
     notifyListeners();
   }
 
@@ -54,7 +52,15 @@ class ThemeProvider extends ChangeNotifier {
 }
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   await dotenv.load(fileName: ".env");
+
+  // 알림 서비스 초기화 (웹이 아닌 경우에만)
+  if (!kIsWeb) {
+    await NotificationService.initialize();
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -70,11 +76,14 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // 글로벌 스캐폴드 메신저 키
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
-        final isDark = themeProvider.mode == AppThemeMode.dark;
         final lightTheme = ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
@@ -107,6 +116,11 @@ class MyApp extends StatelessWidget {
           themeMode: themeProvider.themeMode,
           home: const MainScreen(),
           debugShowCheckedModeBanner: false,
+          scaffoldMessengerKey: scaffoldMessengerKey,
+          // SystemContextMenu 에러 방지
+          builder: (context, child) {
+            return child ?? const SizedBox.shrink();
+          },
         );
       },
     );
