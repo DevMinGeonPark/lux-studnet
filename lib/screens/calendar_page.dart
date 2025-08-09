@@ -12,7 +12,7 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   // Calendar state
-  int _selectedDay = DateTime.now().day;
+  DateTime _selectedDate = DateTime.now(); // Track full selected date
   int _calendarViewMonths = 1; // Default to 1 month view
   DateTime _startMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
@@ -23,6 +23,12 @@ class _CalendarPageState extends State<CalendarPage> {
   // Dot indicator state
   int _currentPageIndex = 0;
   int _totalPages = 1;
+
+  // Schedule data - Map of date string to list of schedule items
+  Map<String, List<Map<String, String>>> _schedules = {};
+  
+  // Schedule indicator toggle
+  bool _showScheduleIndicators = true;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +92,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 onTap: () {
                   setState(() {
                     _startMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
-                    _selectedDay = DateTime.now().day;
+                    _selectedDate = DateTime.now();
                   });
                 },
                 child: Container(
@@ -102,6 +108,41 @@ class _CalendarPageState extends State<CalendarPage> {
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Schedule Indicator Toggle Button
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showScheduleIndicators = !_showScheduleIndicators;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: _showScheduleIndicators ? const Color(0xFFA9A5F4) : Colors.grey[300],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.event_note,
+                        color: _showScheduleIndicators ? Colors.white : Colors.grey[600],
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Events',
+                        style: TextStyle(
+                          color: _showScheduleIndicators ? Colors.white : Colors.grey[600],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -126,9 +167,6 @@ class _CalendarPageState extends State<CalendarPage> {
                     );
                   }),
                 ),
-                const SizedBox(height: 16),
-                // Dot Indicator
-                _buildDotIndicator(),
                 const SizedBox(height: 32),
                 // Daily Schedule Section
                 _buildDailySchedule(),
@@ -179,8 +217,8 @@ class _CalendarPageState extends State<CalendarPage> {
         final weekCount = weeks.length;
         
         // Calculate row height to fit all weeks with proper spacing
-        final rowHeight = (gridHeight / weekCount).clamp(40.0, 60.0); // Adjusted row height
-        final rowSpacing = 0.0; // No spacing between rows for seamless grid
+        final rowHeight = (gridHeight / weekCount).clamp(30.0, 50.0); // Much smaller to prevent overflow
+        final rowSpacing = 0.0; // No spacing between rows - keep grid connected
         
         return Column(
           children: [
@@ -238,7 +276,7 @@ class _CalendarPageState extends State<CalendarPage> {
             // Calendar Days Grid - Constrained Height
             Expanded(
               child: Container(
-                padding: const EdgeInsets.only(top: 8.0), // Add spacing from weekday row
+                padding: const EdgeInsets.only(top: 28.0), // Slightly reduced spacing from weekday row
                 child: Column(
                   children: _buildCalendarWeeksForMonth(monthDate, rowHeight, rowSpacing),
                 ),
@@ -276,42 +314,47 @@ class _CalendarPageState extends State<CalendarPage> {
             bool isSaturday = dayIndex == 6;
             
             return Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  // Black grid border
-                  border: Border.all(
-                    color: Colors.black,
-                    width: 0.5,
-                  ),
-                ),
-                child: day == null
-                    ? const SizedBox()
-                    : GestureDetector(
+              child: day == null
+                  ? const SizedBox() // No border for empty cells
+                  : Container(
+                                             decoration: BoxDecoration(
+                         // Grid border - black in light mode, white in dark mode
+                         border: Border.all(
+                           color: Theme.of(context).brightness == Brightness.dark 
+                               ? Colors.white 
+                               : Colors.black,
+                           width: 0.5,
+                         ),
+                       ),
+                      child: GestureDetector(
                         onTap: () {
                           setState(() {
-                            _selectedDay = day;
+                            _selectedDate = DateTime(monthDate.year, monthDate.month, day);
                           });
                         },
                         child: Container(
                           width: double.infinity,
                           height: double.infinity,
                           decoration: BoxDecoration(
-                            color: _getDayBackgroundColor(day, isSunday, isSaturday),
+                            color: _getDayBackgroundColor(day, isSunday, isSaturday, monthDate),
                           ),
-                          child: Center(
-                            child: Text(
-                              day.toString(),
-                              style: TextStyle(
-                                fontSize: (rowHeight * 0.25).clamp(12.0, 16.0),
-                                fontWeight: day == _selectedDay ? FontWeight.w600 : FontWeight.w400,
-                                color: _getDayTextColor(day, isSunday, isSaturday),
-                                letterSpacing: -0.2,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8.0), // Lower date numbers
+                            child: Center(
+                              child: Text(
+                                day.toString(),
+                                style: TextStyle(
+                                  fontSize: (rowHeight * 0.25).clamp(12.0, 16.0),
+                                  fontWeight: _isDateSelected(day, monthDate) ? FontWeight.w600 : FontWeight.w400,
+                                  color: _getDayTextColor(day, isSunday, isSaturday, monthDate),
+                                  letterSpacing: -0.2,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-              ),
+                    ),
             );
           }).toList(),
         ),
@@ -319,21 +362,48 @@ class _CalendarPageState extends State<CalendarPage> {
     }).toList();
   }
   
-  Color _getDayBackgroundColor(int day, bool isSunday, bool isSaturday) {
-    if (day == _selectedDay) {
+  bool _isDateSelected(int day, DateTime monthDate) {
+    return _selectedDate.year == monthDate.year && 
+           _selectedDate.month == monthDate.month && 
+           _selectedDate.day == day;
+  }
+
+  bool _hasSchedulesForDate(int day, DateTime monthDate) {
+    String dateKey = _getDateKey(DateTime(monthDate.year, monthDate.month, day));
+    return _schedules.containsKey(dateKey) && _schedules[dateKey]!.isNotEmpty;
+  }
+
+  Color _getDayBackgroundColor(int day, bool isSunday, bool isSaturday, DateTime monthDate) {
+    // Check if this date has schedules
+    bool hasSchedules = _hasSchedulesForDate(day, monthDate);
+    
+    if (_isDateSelected(day, monthDate)) {
       return const Color(0xFF1A237E); // Selected day - navy blue
+    } else if (isSunday) {
+      if (hasSchedules && _showScheduleIndicators) {
+        return const Color(0xFF061020); // Even darker navy for Sunday with schedules
+      }
+      return const Color(0xFF0E1D40); // Sunday - navy background
+    } else if (isSaturday) {
+      if (hasSchedules && _showScheduleIndicators) {
+        return const Color(0xFF7A75C4); // Darker periwinkle for Saturday with schedules
+      }
+      return const Color(0xFFA9A5F4); // Saturday - periwinkle background
     } else {
-      return Colors.transparent; // All other days - transparent
+      if (hasSchedules && _showScheduleIndicators) {
+        return Colors.grey[300]!; // Darker grey for weekdays with schedules
+      }
+      return Colors.transparent; // Weekdays - transparent
     }
   }
   
-  Color _getDayTextColor(int day, bool isSunday, bool isSaturday) {
-    if (day == _selectedDay) {
+  Color _getDayTextColor(int day, bool isSunday, bool isSaturday, DateTime monthDate) {
+    if (_isDateSelected(day, monthDate)) {
       return Colors.white; // Selected day - white text
     } else if (isSunday) {
-      return const Color(0xFF000F40); // Sunday - navy text
+      return Colors.white; // Sunday - white text on navy background
     } else if (isSaturday) {
-      return const Color(0xFFA9A5F4); // Saturday - periwinkle text
+      return Colors.white; // Saturday - white text on periwinkle background
     } else {
       return Theme.of(context).brightness == Brightness.dark
           ? Colors.white
@@ -759,41 +829,77 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildDailySchedule() {
+    String dateKey = _getDateKey(_selectedDate);
+    List<Map<String, String>> scheduleItems = _schedules[dateKey] ?? [];
+    
     return Container(
       margin: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header (Apple Calendar style)
+          // Section Header with Add Button
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12.0),
-            child: Text(
-              'Daily Schedule',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark 
-                    ? Colors.white 
-                    : Colors.black,
-                letterSpacing: -0.3,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Daily Schedule - ${_getFormattedDate(_selectedDate)}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.white 
+                          : Colors.black,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _showAddScheduleDialog(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A237E),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           // Schedule Items
-          ..._buildScheduleItems(),
+          ..._buildScheduleItems(scheduleItems),
         ],
       ),
     );
   }
 
-  List<Widget> _buildScheduleItems() {
-    List<Map<String, String>> scheduleItems = [
-      {'time': '8:00 AM – 9:00 AM', 'activity': 'Morning Study Session'},
-      {'time': '10:30 AM – 11:30 AM', 'activity': 'Break & Refresh'},
-      {'time': '2:00 PM – 3:30 PM', 'activity': 'Afternoon Focus Time'},
-      {'time': '4:00 PM – 5:00 PM', 'activity': 'Review & Planning'},
-      {'time': '7:00 PM – 8:00 PM', 'activity': 'Evening Review'},
-    ];
+  List<Widget> _buildScheduleItems(List<Map<String, String>> scheduleItems) {
+    if (scheduleItems.isEmpty) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: Text(
+              'No schedule items for this date.\nTap the + button to add one!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.grey[400] 
+                    : Colors.grey[600],
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
 
     return scheduleItems.asMap().entries.map((entry) {
       int index = entry.key;
@@ -836,38 +942,486 @@ class _CalendarPageState extends State<CalendarPage> {
             const SizedBox(width: 16),
             // Content Column (Apple Calendar style)
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item['time']!,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? Colors.white 
-                          : Colors.black87,
-                      letterSpacing: -0.2,
+              child: GestureDetector(
+                onTap: () => _showEditScheduleDialog(context, index, item),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['activity']!,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item['activity']!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? Colors.grey[400] 
-                          : Colors.grey[600],
-                      letterSpacing: -0.1,
+                    const SizedBox(height: 2),
+                    Text(
+                      item['time']!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey[400] 
+                            : Colors.grey[600],
+                        letterSpacing: -0.1,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            ),
+            // Delete Button
+            GestureDetector(
+              onTap: () => _showDeleteConfirmation(context, index),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: const Color(0xFFA9A5F4), // Periwinkle
+                  size: 18,
+                ),
               ),
             ),
           ],
         ),
       );
     }).toList();
+  }
+
+  // Helper functions for schedule management
+  String _getDateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _getFormattedDate(DateTime date) {
+    List<String> months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[date.month - 1]} ${date.day}';
+  }
+
+  void _showAddScheduleDialog(BuildContext context) {
+    String startTime = '';
+    String endTime = '';
+    String activity = '';
+    TimeOfDay selectedStartTime = TimeOfDay.now();
+    TimeOfDay selectedEndTime = TimeOfDay.now();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return _buildCenteredModal(context, startTime, endTime, activity, selectedStartTime, selectedEndTime);
+      },
+    );
+  }
+
+  Widget _buildCenteredModal(BuildContext context, String startTime, String endTime, String activity, TimeOfDay selectedStartTime, TimeOfDay selectedEndTime) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(20),
+                                 decoration: BoxDecoration(
+                   color: Theme.of(context).brightness == Brightness.dark 
+                       ? Colors.grey[900]! 
+                       : Colors.white,
+                   borderRadius: BorderRadius.circular(12),
+                   boxShadow: [
+                     BoxShadow(
+                       color: Colors.black.withOpacity(0.2),
+                       blurRadius: 20,
+                       offset: const Offset(0, 10),
+                     ),
+                   ],
+                 ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Start Time Selection
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          _showTimePicker(context, (selectedTime) {
+                            setState(() {
+                              startTime = '${selectedTime.hourOfPeriod}:${selectedTime.minute.toString().padLeft(2, '0')} ${selectedTime.period == DayPeriod.am ? 'AM' : 'PM'}';
+                            });
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.grey[50],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  startTime.isEmpty ? 'Start Time' : startTime,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: startTime.isEmpty ? Colors.grey[600] : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.access_time,
+                                color: Colors.grey[600],
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // End Time Selection
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: GestureDetector(
+                        onTap: () {
+                          _showTimePicker(context, (selectedTime) {
+                            setState(() {
+                              endTime = '${selectedTime.hourOfPeriod}:${selectedTime.minute.toString().padLeft(2, '0')} ${selectedTime.period == DayPeriod.am ? 'AM' : 'PM'}';
+                            });
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.grey[50],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  endTime.isEmpty ? 'End Time' : endTime,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: endTime.isEmpty ? Colors.grey[600] : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.access_time,
+                                color: Colors.grey[600],
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Task Title Input
+                    Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Add Title',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            contentPadding: const EdgeInsets.all(12),
+                          ),
+                          onChanged: (value) => activity = value,
+                        ),
+                      ),
+                    ),
+                                         // Action Buttons
+                     Row(
+                       children: [
+                         Expanded(
+                           child: CupertinoButton(
+                             child: const Text('Cancel'),
+                             onPressed: () => Navigator.of(context).pop(),
+                           ),
+                         ),
+                         const SizedBox(width: 8),
+                         Expanded(
+                           child: CupertinoButton(
+                             color: const Color(0xFF1A237E),
+                             child: const Text(
+                               'Save',
+                               style: TextStyle(color: Colors.white),
+                             ),
+                             onPressed: () {
+                               if (startTime.isNotEmpty && endTime.isNotEmpty && activity.isNotEmpty) {
+                                 _addScheduleItem('$startTime – $endTime', activity);
+                                 Navigator.of(context).pop();
+                               }
+                             },
+                           ),
+                         ),
+                       ],
+                     ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showTimePicker(BuildContext context, Function(TimeOfDay) onTimeSelected) {
+    TimeOfDay selectedTime = TimeOfDay.now();
+    
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 300,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Select Time',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Time Picker
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  use24hFormat: false,
+                  initialDateTime: DateTime.now(),
+                  onDateTimeChanged: (DateTime newDateTime) {
+                    selectedTime = TimeOfDay.fromDateTime(newDateTime);
+                  },
+                ),
+              ),
+              // Action Buttons
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoButton(
+                        child: const Text('Cancel'),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    Expanded(
+                                               child: CupertinoButton(
+                           color: const Color(0xFF1A237E),
+                           child: const Text(
+                             'Done',
+                             style: TextStyle(color: Colors.white),
+                           ),
+                           onPressed: () {
+                             onTimeSelected(selectedTime);
+                             Navigator.of(context).pop();
+                           },
+                         ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditScheduleDialog(BuildContext context, int index, Map<String, String> item) {
+    String time = item['time'] ?? '';
+    String activity = item['activity'] ?? '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit Schedule Item'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Time',
+                ),
+                controller: TextEditingController(text: time),
+                onChanged: (value) => time = value,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Activity',
+                ),
+                controller: TextEditingController(text: activity),
+                onChanged: (value) => activity = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (time.isNotEmpty && activity.isNotEmpty) {
+                  _editScheduleItem(index, time, activity);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _addScheduleItem(String time, String activity) {
+    setState(() {
+      String dateKey = _getDateKey(_selectedDate);
+      if (!_schedules.containsKey(dateKey)) {
+        _schedules[dateKey] = [];
+      }
+      _schedules[dateKey]!.add({
+        'time': time,
+        'activity': activity,
+      });
+      _sortScheduleItems(dateKey);
+    });
+  }
+
+  void _editScheduleItem(int index, String time, String activity) {
+    setState(() {
+      String dateKey = _getDateKey(_selectedDate);
+      if (_schedules.containsKey(dateKey) && index < _schedules[dateKey]!.length) {
+        _schedules[dateKey]![index] = {
+          'time': time,
+          'activity': activity,
+        };
+        _sortScheduleItems(dateKey);
+      }
+    });
+  }
+
+  void _showDeleteConfirmation(BuildContext context, int index) {
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Delete Schedule Item'),
+          content: const Text('Are you sure you want to delete this schedule item?'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              child: const Text('Delete'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteScheduleItem(index);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteScheduleItem(int index) {
+    setState(() {
+      String dateKey = _getDateKey(_selectedDate);
+      if (_schedules.containsKey(dateKey) && index < _schedules[dateKey]!.length) {
+        _schedules[dateKey]!.removeAt(index);
+      }
+    });
+  }
+
+  void _sortScheduleItems(String dateKey) {
+    if (_schedules.containsKey(dateKey)) {
+      _schedules[dateKey]!.sort((a, b) {
+        DateTime timeA = _parseTimeString(a['time']!);
+        DateTime timeB = _parseTimeString(b['time']!);
+        return timeA.compareTo(timeB);
+      });
+    }
+  }
+
+  DateTime _parseTimeString(String timeString) {
+    // Parse time strings like "8:00 AM – 9:00 AM" and extract start time
+    String startTime = timeString.split(' – ')[0];
+    
+    // Parse the start time (e.g., "8:00 AM")
+    List<String> parts = startTime.split(' ');
+    String timePart = parts[0];
+    String period = parts[1];
+    
+    List<String> timeComponents = timePart.split(':');
+    int hour = int.parse(timeComponents[0]);
+    int minute = int.parse(timeComponents[1]);
+    
+    // Convert to 24-hour format for comparison
+    if (period == 'PM' && hour != 12) {
+      hour += 12;
+    } else if (period == 'AM' && hour == 12) {
+      hour = 0;
+    }
+    
+    // Use a base date for comparison (time only matters)
+    return DateTime(2025, 1, 1, hour, minute);
   }
 } 
