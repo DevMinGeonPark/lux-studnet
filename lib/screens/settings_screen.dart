@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../main.dart';
 import '../language_provider.dart';
+import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,12 +16,15 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _showStudyStreaks = false;
+  bool _notificationsEnabled = true;
+  bool _morningBriefingEnabled = false;
   Map<DateTime, int> _studyData = {};
 
   @override
   void initState() {
     super.initState();
     _loadStudyData();
+    _loadNotificationSettings();
   }
 
   @override
@@ -64,6 +69,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _studyData = studyData;
     });
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _morningBriefingEnabled =
+          prefs.getBool('morning_briefing_enabled') ?? false;
+    });
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notifications_enabled', value);
+
+    setState(() {
+      _notificationsEnabled = value;
+    });
+
+    if (!kIsWeb) {
+      if (value) {
+        // 알림 권한 다시 요청
+        await NotificationService.initialize();
+        // FCM 토큰 가져오기
+        final token = await NotificationService.getToken();
+        print('FCM Token: $token');
+
+        // 예시 알림 보내기
+        await NotificationService.showLocalNotification(
+          id: 1,
+          title: '알림이 활성화되었습니다!',
+          body: '이제 중요한 학습 알림을 받으실 수 있습니다.',
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleMorningBriefing(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('morning_briefing_enabled', value);
+
+    setState(() {
+      _morningBriefingEnabled = value;
+    });
+
+    if (!kIsWeb && value && _notificationsEnabled) {
+      // 매일 오전 8시에 알림 스케줄링
+      final now = DateTime.now();
+      final tomorrow8am = DateTime(now.year, now.month, now.day + 1, 8, 0);
+
+      await NotificationService.scheduleNotification(
+        id: 100,
+        title: '좋은 아침입니다! 📚',
+        body: '오늘도 학습 목표를 달성해보세요!',
+        scheduledDate: tomorrow8am,
+        data: {'type': 'morning_briefing'},
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('매일 오전 8시에 모닝 브리핑을 받으실 수 있습니다.')),
+      );
+    } else if (!value) {
+      // 모닝 브리핑 알림 취소
+      await NotificationService.cancelNotification(100);
+    }
   }
 
   void _toggleStudyStreaks() {
@@ -246,6 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+
           const SizedBox(height: 24),
           Padding(
             padding: sectionPadding,
@@ -260,8 +331,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   iconBg: iconBg,
                   iconRadius: iconRadius,
                   title: 'Push Notifications',
-                  value: true,
-                  onChanged: null,
+                  value: _notificationsEnabled,
+                  onChanged: kIsWeb ? null : _toggleNotifications,
                   padding: itemPadding,
                 ),
                 _SettingsToggleItem(
@@ -269,8 +340,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   iconBg: iconBg,
                   iconRadius: iconRadius,
                   title: 'Morning Briefings',
-                  value: false,
-                  onChanged: null,
+                  value: _morningBriefingEnabled,
+                  onChanged: kIsWeb || !_notificationsEnabled
+                      ? null
+                      : _toggleMorningBriefing,
                   padding: itemPadding,
                 ),
                 GestureDetector(
